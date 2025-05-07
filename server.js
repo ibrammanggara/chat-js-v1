@@ -9,9 +9,9 @@ const io = socketIo(server);
 
 // Konfigurasi koneksi MySQL
 const dbConfig = {
-  host: 'mysql-ibram',
-  user: 'atmin',
-  password: 'passwd',
+  host: '',
+  user: '',
+  password: '',
   database: 'defaultdb',
   port: 15633, 
   ssl: {
