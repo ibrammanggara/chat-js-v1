@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ruang Chat Anonim</title>
-    
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
@@ -17,6 +16,12 @@
         <button id="send-button" class="btn btn-outline-success">Kirim</button>
     </div>
 
+    <!-- Tambahkan elemen audio untuk notifikasi -->
+    <audio id="notification-sound" preload="auto">
+        <source src="https://www.soundjay.com/buttons/sounds/button-7.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
@@ -24,24 +29,39 @@
         const messageInput = document.getElementById("message-input");
         const sendButton = document.getElementById("send-button");
         const nameInput = document.getElementById("name-input");
+        const notificationSound = document.getElementById("notification-sound");
+
+        // Variabel untuk menyimpan nama pengguna saat ini
+        let currentUser = "";
 
         // Fungsi untuk mendapatkan nama pengirim pesan
         function getSenderName() {
-            return nameInput.value || "Anonim"; // Jika nama tidak diisi, akan menggunakan "Anonim"
+            currentUser = nameInput.value || "Anonim";
+            return currentUser;
         }
 
         socket.on("chatMessage", (message) => {
             const messageElement = document.createElement("div");
             messageElement.textContent = message;
             messageContainer.appendChild(messageElement);
+            
+            // Cek apakah pesan berasal dari pengguna lain
+            if (!message.startsWith(currentUser + ":")) {
+                // Mainkan suara notifikasi
+                notificationSound.currentTime = 0; // Reset audio ke awal
+                notificationSound.play().catch(e => console.log("Autoplay prevented: ", e));
+            }
+            
+            // Scroll otomatis ke pesan terbaru
+            messageContainer.scrollTop = messageContainer.scrollHeight;
         });
 
         // Fungsi untuk mengirim pesan
         function sendMessage() {
             const message = messageInput.value;
-            const sender = getSenderName(); // Menggunakan nama pengirim pesan
+            const sender = getSenderName();
             if (message.trim() !== "") {
-                socket.emit("chatMessage", `${sender}: ${message}`); // Mengirim pesan dengan nama pengirim
+                socket.emit("chatMessage", `${sender}: ${message}`);
                 messageInput.value = "";
             }
         }
@@ -56,6 +76,9 @@
                 sendMessage();
             }
         });
+
+        // Inisialisasi nama pengguna saat halaman dimuat
+        getSenderName();
     </script>
 </body>
 </html>
