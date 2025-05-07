@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruang Chat Anonim</title>
+    
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div id="chat-container" class="container1" style="text-align: center;">
+        <h1>Ruang Chat Anonim</h1>
+        <!-- Kolom untuk mengisi nama -->
+        <input type="text" id="name-input" placeholder="Nama Anda...">
+        <div id="message-container"></div>
+        <input type="text" id="message-input" placeholder="Ketik pesan Anda...">
+        <button id="send-button" class="btn btn-outline-success">Kirim</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const messageContainer = document.getElementById("message-container");
+        const messageInput = document.getElementById("message-input");
+        const sendButton = document.getElementById("send-button");
+        const nameInput = document.getElementById("name-input");
+
+        // Fungsi untuk mendapatkan nama pengirim pesan
+        function getSenderName() {
+            return nameInput.value || "Anonim"; // Jika nama tidak diisi, akan menggunakan "Anonim"
+        }
+
+        socket.on("chatMessage", (message) => {
+            const messageElement = document.createElement("div");
+            messageElement.textContent = message;
+            messageContainer.appendChild(messageElement);
+        });
+
+        // Fungsi untuk mengirim pesan
+        function sendMessage() {
+            const message = messageInput.value;
+            const sender = getSenderName(); // Menggunakan nama pengirim pesan
+            if (message.trim() !== "") {
+                socket.emit("chatMessage", `${sender}: ${message}`); // Mengirim pesan dengan nama pengirim
+                messageInput.value = "";
+            }
+        }
+
+        sendButton.addEventListener("click", () => {
+            sendMessage();
+        });
+
+        // Mengirim pesan saat tombol "Enter" ditekan
+        messageInput.addEventListener("keyup", (event) => {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
