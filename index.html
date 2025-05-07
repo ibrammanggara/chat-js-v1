@@ -9,17 +9,14 @@
 <body>
     <div id="chat-container" class="container1" style="text-align: center;">
         <h1>Ruang Chat Anonim</h1>
-        <!-- Kolom untuk mengisi nama -->
-        <input type="text" id="name-input" placeholder="Nama Anda...">
+        <input type="text" id="name-input" placeholder="Nama Anda..." onchange="updateCurrentUser()">
         <div id="message-container"></div>
         <input type="text" id="message-input" placeholder="Ketik pesan Anda...">
         <button id="send-button" class="btn btn-outline-success">Kirim</button>
     </div>
 
-    <!-- Tambahkan elemen audio untuk notifikasi -->
     <audio id="notification-sound" preload="auto">
         <source src="https://www.soundjay.com/buttons/sounds/button-7.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
     </audio>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -30,55 +27,59 @@
         const sendButton = document.getElementById("send-button");
         const nameInput = document.getElementById("name-input");
         const notificationSound = document.getElementById("notification-sound");
+        
+        let currentUser = nameInput.value || "Anonim";
 
-        // Variabel untuk menyimpan nama pengguna saat ini
-        let currentUser = "";
-
-        // Fungsi untuk mendapatkan nama pengirim pesan
-        function getSenderName() {
-            currentUser = nameInput.value || "Anonim";
-            return currentUser;
+        // Update currentUser setiap kali nama diubah
+        function updateCurrentUser() {
+            currentUser = nameInput.value.trim() || "Anonim";
         }
 
+        // Handle pesan masuk
         socket.on("chatMessage", (message) => {
+            const isCurrentUser = message.startsWith(currentUser + ":");
+            
             const messageElement = document.createElement("div");
             messageElement.textContent = message;
             messageContainer.appendChild(messageElement);
             
-            // Cek apakah pesan berasal dari pengguna lain
-            if (!message.startsWith(currentUser + ":")) {
-                // Mainkan suara notifikasi
-                notificationSound.currentTime = 0; // Reset audio ke awal
-                notificationSound.play().catch(e => console.log("Autoplay prevented: ", e));
+            // Hanya mainkan suara jika bukan pesan sendiri
+            if (!isCurrentUser) {
+                playNotificationSound();
             }
             
-            // Scroll otomatis ke pesan terbaru
             messageContainer.scrollTop = messageContainer.scrollHeight;
         });
 
-        // Fungsi untuk mengirim pesan
+        // Fungsi untuk memainkan suara notifikasi
+        function playNotificationSound() {
+            try {
+                notificationSound.currentTime = 0;
+                notificationSound.play().catch(e => {
+                    // Fallback untuk autoplay policy
+                    document.addEventListener('click', () => notificationSound.play(), { once: true });
+                });
+            } catch (e) {
+                console.error("Error playing sound:", e);
+            }
+        }
+
+        // Fungsi kirim pesan
         function sendMessage() {
-            const message = messageInput.value;
-            const sender = getSenderName();
-            if (message.trim() !== "") {
+            const message = messageInput.value.trim();
+            if (message) {
+                const sender = nameInput.value.trim() || "Anonim";
                 socket.emit("chatMessage", `${sender}: ${message}`);
                 messageInput.value = "";
             }
         }
 
-        sendButton.addEventListener("click", () => {
-            sendMessage();
-        });
-
-        // Mengirim pesan saat tombol "Enter" ditekan
-        messageInput.addEventListener("keyup", (event) => {
-            if (event.key === "Enter") {
-                sendMessage();
-            }
-        });
-
-        // Inisialisasi nama pengguna saat halaman dimuat
-        getSenderName();
+        // Event listeners
+        sendButton.addEventListener("click", sendMessage);
+        messageInput.addEventListener("keyup", (e) => e.key === "Enter" && sendMessage());
+        
+        // Inisialisasi awal
+        updateCurrentUser();
     </script>
 </body>
 </html>
