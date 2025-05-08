@@ -56,7 +56,8 @@ io.on('connection', async (socket) => {
   // Kirim sambutan awal
   socket.emit('chatMessage', {
     message: 'Selamat datang di ruang chat!',
-    replyTo: null
+    replyTo: null,
+    createdAt: new Date().toISOString()
   });
 
   // Kirim riwayat pesan
@@ -65,7 +66,8 @@ io.on('connection', async (socket) => {
     messages.reverse().forEach(msg => {
       socket.emit('chatMessage', {
         message: `${msg.name}: ${msg.message}`,
-        replyTo: msg.reply_to || null
+        replyTo: msg.reply_to || null,
+        createdAt: msg.created_at // Menambahkan waktu ke setiap pesan
       });
     });
   } catch (error) {
@@ -81,16 +83,19 @@ io.on('connection', async (socket) => {
           const name = data.message.substring(0, separatorIndex).trim();
           const message = data.message.substring(separatorIndex + 1).trim();
 
-          await pool.query(
+          const [result] = await pool.query(
             'INSERT INTO messages (name, message, reply_to) VALUES (?, ?, ?)',
             [name, message, data.replyTo || null]
           );
-        }
 
-        io.emit('chatMessage', {
-          message: data.message,
-          replyTo: data.replyTo || null
-        });
+          const newMessage = {
+            message: data.message,
+            replyTo: data.replyTo || null,
+            createdAt: new Date().toISOString() // Menambahkan waktu
+          };
+
+          io.emit('chatMessage', newMessage); // Kirim data termasuk waktu
+        }
       }
     } catch (error) {
       console.error('Error saving message:', error);
