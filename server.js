@@ -1,31 +1,30 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const mysql = require('mysql2/promise'); // Menggunakan promise-based API
+const mysql = require('mysql2/promise');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Konfigurasi koneksi MySQL
+// Konfigurasi koneksi database
 const dbConfig = {
-  host: '',
-  user: '',
-  password: '',
+  host: 'mysql-ibrmm-ibrammanggaraa-e1fc.h.aivencloud.com',
+  user: 'avnadmin',
+  password: 'AVNS__y_04E50xeLsL6PmMBy',
   database: 'defaultdb',
-  port: 15633, 
+  port: 15633,
   ssl: {
     rejectUnauthorized: false,
   },
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
 };
 
-// Membuat koneksi pool MySQL
 const pool = mysql.createPool(dbConfig);
 
-// Fungsi untuk inisialisasi database
+// Inisialisasi tabel messages
 async function initializeDatabase() {
   try {
     const connection = await pool.getConnection();
@@ -34,6 +33,7 @@ async function initializeDatabase() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         message TEXT NOT NULL,
+        reply_to TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -53,36 +53,45 @@ app.get('/', (req, res) => {
 io.on('connection', async (socket) => {
   console.log('A user connected');
 
-  // Mengirim pesan selamat datang dan riwayat chat
-  socket.emit('chatMessage', 'Selamat datang di ruang chat!');
-  
+  // Kirim sambutan awal
+  socket.emit('chatMessage', {
+    message: 'Selamat datang di ruang chat!',
+    replyTo: null
+  });
+
+  // Kirim riwayat pesan
   try {
     const [messages] = await pool.query('SELECT * FROM messages ORDER BY created_at DESC LIMIT 50');
     messages.reverse().forEach(msg => {
-      socket.emit('chatMessage', `${msg.name}: ${msg.message}`);
+      socket.emit('chatMessage', {
+        message: `${msg.name}: ${msg.message}`,
+        replyTo: msg.reply_to || null
+      });
     });
   } catch (error) {
     console.error('Error fetching messages:', error);
   }
 
-  // Menangani pesan yang dikirim oleh user
+  // Terima dan simpan pesan baru
   socket.on('chatMessage', async (data) => {
     try {
-      // Data harus dalam format "nama: pesan"
-      const separatorIndex = data.indexOf(':');
-      if (separatorIndex > 0) {
-        const name = data.substring(0, separatorIndex).trim();
-        const message = data.substring(separatorIndex + 1).trim();
-        
-        // Simpan ke database
-        await pool.query(
-          'INSERT INTO messages (name, message) VALUES (?, ?)',
-          [name, message]
-        );
+      if (typeof data === 'object' && data.message) {
+        const separatorIndex = data.message.indexOf(':');
+        if (separatorIndex > 0) {
+          const name = data.message.substring(0, separatorIndex).trim();
+          const message = data.message.substring(separatorIndex + 1).trim();
+
+          await pool.query(
+            'INSERT INTO messages (name, message, reply_to) VALUES (?, ?, ?)',
+            [name, message, data.replyTo || null]
+          );
+        }
+
+        io.emit('chatMessage', {
+          message: data.message,
+          replyTo: data.replyTo || null
+        });
       }
-      
-      // Mengirim pesan ke semua user
-      io.emit('chatMessage', data);
     } catch (error) {
       console.error('Error saving message:', error);
     }
@@ -93,6 +102,6 @@ io.on('connection', async (socket) => {
   });
 });
 
-server.listen(8080, () => {
-  console.log('Server started on http://localhost:8080');
+server.listen(80, () => {
+  console.log('Server started on http://localhost:80');
 });
