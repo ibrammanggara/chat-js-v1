@@ -65,7 +65,6 @@
       border-bottom-right-radius: 20px;
     }
 
-    /* Dark Mode */
     body.dark-mode {
       background-color: #121212;
       color: #e9ecef;
@@ -154,10 +153,16 @@
       currentUser = nameInput.value.trim() || "Anonim";
     }
 
+    // Format waktu
+    function formatTime(time) {
+      const date = new Date(time);
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+
     socket.on("chatMessage", (data) => {
-      const { message, replyTo } = typeof data === "string"
-        ? { message: data, replyTo: null }
-        : data;
+      const { message, replyTo, createdAt } = data;
 
       const isCurrentUser = message.startsWith(currentUser + ":");
 
@@ -165,6 +170,13 @@
       const bubble = document.createElement("div");
       bubble.className = `chat-bubble ${isCurrentUser ? "mine" : "theirs"}`;
       bubble.textContent = message;
+
+      // Menambahkan waktu dari created_at
+      const time = document.createElement("small");
+      time.textContent = ` ${formatTime(createdAt)}`;
+      time.style.fontSize = "0.75rem";
+      time.style.color = "#6c757d";
+      bubble.appendChild(time);
 
       if (replyTo) {
         const reply = document.createElement("div");
