@@ -9,10 +9,10 @@ const io = socketIo(server);
 
 // Konfigurasi koneksi database
 const dbConfig = {
-  host: 'mysql-ibrmm-ibrammanggaraa-e1fc.h.aivencloud.com',
-  user: 'avnadmin',
-  password: 'AVNS__y_04E50xeLsL6PmMBy',
-  database: 'defaultdb',
+  host: 'pp',
+  user: 'pp',
+  password: 'pp',
+  database: 'pp',
   port: 15633,
   ssl: {
     rejectUnauthorized: false,
